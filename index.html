@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Date</title> 
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'sarabun', sans-serif; background: #f0f0f0; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Panel สำหรับกรอกข้อมูล */
+        .input-panel {
+            width: 35%;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            position: relative; 
+            padding-bottom: 80px; 
+        }
+        .input-panel h2 { margin-top: 0; color: #ecf0f1; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        
+        .search-box {
+            background: #34495e; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f39c12;
+        }
+        .search-row { display: flex; gap: 5px; }
+        .btn-search {
+            background: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .btn-search:hover { background: #d35400; }
+
+        .payment-update-box {
+            background: #27ae60; padding: 15px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; border: 1px solid #2ecc71; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .payment-update-box h4 { margin: 0 0 10px 0; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #bdc3c7; }
+        
+        .form-group input, .form-group textarea, .form-group select { 
+            width: 100%; padding: 8px; border: none; border-radius: 4px; font-family: 'Angsana', sans-serif; box-sizing: border-box; transition: box-shadow 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5); background: #ecf0f1; color: #2c3e50;
+        }
+
+        .section-header { background: #34495e; padding: 10px; margin: 20px -20px 15px; font-weight: bold; }
+        
+        .btn-group { margin-top: 20px; }
+        .btn-master {
+            border: none; padding: 15px; width: 100%; font-size: 18px; 
+            cursor: pointer; border-radius: 8px; font-weight: bold; 
+            color: white; background: #2980b9; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: all 0.3s ease;
+        }
+        .btn-master:hover { background: #1c5980; transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0,0,0,0.3); }
+        .btn-master:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
+
+        /* Floating Tools */
+        .floating-tools {
+            position: fixed; bottom: 20px; left: 20px; width: calc(35% - 60px); 
+            background: rgba(44, 62, 80, 0.95); padding: 10px; border-radius: 12px;
+            display: flex; justify-content: space-around; align-items: center; gap: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid #4a6278; z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .tool-btn {
+            border: none; background: transparent; color: #bdc3c7; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; font-size: 11px;
+            transition: all 0.2s; padding: 8px 12px; border-radius: 8px; flex: 1;
+        }
+        .tool-btn i { font-size: 18px; margin-bottom: 4px; }
+        .tool-btn:hover { color: white; background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        .tool-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        
+        .tool-btn.btn-mic { color: #ecf0f1; border: 1px solid rgba(255,255,255,0.1); }
+        .tool-btn.btn-mic:hover { background: rgba(52, 152, 219, 0.2); color: #3498db; border-color: #3498db; }
+        .tool-btn.btn-mic.listening {
+            color: white; background: #e74c3c; border-color: #e74c3c;
+            animation: pulse-red 1.5s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        /* Preview Panel */
+        .preview-panel {
+            flex: 1; padding: 40px; overflow-y: auto; display: flex; 
+            justify-content: center; background: #525659; box-sizing: border-box;
+        }
+
+        /* Legal Page */
+        .legal-page {
+            width: 100%; max-width: 215.9mm; min-height: 355.6mm; height: auto;           
+            background: white; padding: 15mm 5mm; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            position: relative; box-sizing: border-box; color: #000; line-height: 1.6; font-size: 16px;
+        }
+
+        .doc-header { text-align: right; margin-bottom: 20px; }
+        .doc-section-title { font-weight: bold; text-decoration: underline; margin-top: 15px; margin-bottom: 5px; font-size: 18px;}
+        
+        .doc-line { display: flex; flex-wrap: wrap; align-items: baseline; margin-bottom: 5px; column-gap: 5px; }
+        .doc-label { white-space: nowrap; margin-right: 0px; }
+        
+        .fill-data {
+            border-bottom: 1px solid #000; padding: 0 5px; color: #000000; font-weight: Regular;
+            flex-grow: 1; min-width: 30px; text-align: center;
+        }
+        .fill-data.fixed-width { flex-grow: 0; min-width: auto; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid black; padding: 4px; text-align: center; font-size: 14px; height: 25px; word-break: break-word; }
+        th { background-color: #f2f2f2; }
+
+        @media screen and (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow: visible; }
+            .input-panel { width: 100%; height: auto; overflow: visible; border-bottom: 5px solid #1a252f; padding-bottom: 20px; }
+            .floating-tools { position: relative; bottom: auto; left: auto; width: 100%; margin-top: 20px; background: #34495e; }
+            .preview-panel { width: 100%; padding: 10px; display: block; }
+            .legal-page { padding: 10mm; font-size: 14px; }
+        }
+
+        @media print {
+            body { background: white; display: block; height: auto; overflow: visible; }
+            .input-panel, .floating-tools { display: none !important; }
+            .preview-panel { padding: 0; display: block; background: white; margin: 0; }
+            .legal-page { box-shadow: none; margin: 0; width: 215.9mm; max-width: none; height: auto; page-break-after: always; padding: 10mm; overflow: hidden; }
+            @page { margin: 1cm; size: Legal; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="input-panel">
+        <h2>ระบบจัดการสัญญา (Admin)</h2>
+        
+        <div class="search-box">
+            <label style="color:#f39c12; font-weight:bold;">🔍 ค้นหา / แก้ไขสัญญาเก่า</label>
+            <div class="search-row">
+                <input type="text" id="searchInput" placeholder="กรอกเลขที่สัญญาที่ต้องการค้นหา..." style="background: white; color: #333;">
+                <button class="btn-search" onclick="searchContract()">ค้นหา</button>
+            </div>
+        </div>
+
+        <div class="form-group"><label>เลขที่สัญญา</label><input type="text" id="inp_c_no" data-map="c_no" oninput="update('c_no', this.value)" placeholder="เช่น 66/001"></div>
+        <div class="form-group"><label>วันที่ทำสัญญา</label><input type="date" id="inp_c_date" data-map="c_date" oninput="update('c_date', formatDate(this.value))"></div>
+
+        <div class="section-header">ข้อมูลผู้ซื้อ</div>
+        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp_b_name" data-map="b_name" oninput="update('b_name', this.value)"></div>
+        <div class="form-group"><label>ชื่อเล่น</label><input type="text" id="inp_b_nick" data-map="b_nick" oninput="update('b_nick', this.value)"></div>
+        <div class="form-group"><label>อายุ (ปี)</label><input type="text" id="inp_b_age" data-map="b_age" oninput="update('b_age', this.value)"></div>
+        <div class="form-group">
+            <label>เลขบัตรประชาชน</label>
+            <input type="text" id="inp_b_id_card" data-map="b_id_card" 
+                   oninput="formatIdCard(this); update('b_id_card', this.value)" 
+                   placeholder="1-2345-67891-23-4" maxlength="17">
+        </div>
+        <div class="form-group"><label>ที่อยู่ตามบัตรประชาชน</label><input type="text" id="inp_b_id_addr" data-map="b_id_addr" oninput="update('b_id_addr', this.value)"></div>
+        <div class="form-group"><label>ที่อยู่ปัจจุบัน</label><input type="text" id="inp_b_curr_addr" data-map="b_curr_addr" oninput="update('b_curr_addr', this.value)"></div>
+        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_b_tel" data-map="b_tel" oninput="update('b_tel', this.value)"></div>
+        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_b_mobile" data-map="b_mobile" oninput="update('b_mobile', this.value)"></div>
+        <div class="form-group"><label>สถานที่ทำงาน</label><input type="text" id="inp_b_work" data-map="b_work" oninput="update('b_work', this.value)"></div>
+        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_b_work_tel" data-map="b_work_tel" oninput="update('b_work_tel', this.value)"></div>
+        <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_b_work_addr" data-map="b_work_addr" oninput="update('b_work_addr', this.value)"></div>
+        <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_b_pos" data-map="b_pos" oninput="update('b_pos', this.value)"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)"></div>
+
+        <div class="section-header">ข้อมูลผู้ค้ำประกัน</div>
+        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp_g_name" data-map="g_name" oninput="update('g_name', this.value)"></div>
+        <div class="form-group"><label>ชื่อเล่น</label><input type="text" id="inp_g_nick" data-map="g_nick" oninput="update('g_nick', this.value)"></div>
+        <div class="form-group"><label>อายุ (ปี)</label><input type="text" id="inp_g_age" data-map="g_age" oninput="update('g_age', this.value)"></div>
+        <div class="form-group"><label>ความสัมพันธ์</label><input type="text" id="inp_g_rel" data-map="g_rel" oninput="update('g_rel', this.value)"></div>
+        <div class="form-group"><label>ที่อยู่ตามบัตรประชาชน</label><input type="text" id="inp_g_id_addr" data-map="g_id_addr" oninput="update('g_id_addr', this.value)"></div>
+        <div class="form-group"><label>ที่อยู่ปัจจุบัน</label><input type="text" id="inp_g_curr_addr" data-map="g_curr_addr" oninput="update('g_curr_addr', this.value)"></div>
+        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_g_tel" data-map="g_tel" oninput="update('g_tel', this.value)"></div>
+        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_g_mobile" data-map="g_mobile" oninput="update('g_mobile', this.value)"></div>
+        <div class="form-group"><label>สถานที่ทำงาน</label><input type="text" id="inp_g_work" data-map="g_work" oninput="update('g_work', this.value)"></div>
+        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_g_work_tel" data-map="g_work_tel" oninput="update('g_work_tel', this.value)"></div>
+        <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_g_work_addr" data-map="g_work_addr" oninput="update('g_work_addr', this.value)"></div>
+        <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_g_pos" data-map="g_pos" oninput="update('g_pos', this.value)"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)"></div>
+
+        <div class="section-header">รายละเอียดสัญญา</div>
+        <div class="form-group"><label>ชื่อสินค้า</label><input type="text" id="inp_p_name" data-map="p_name" oninput="update('p_name', this.value)"></div>
+        <div class="form-group"><label>ชำระวันทำสัญญา (บาท)</label><input type="text" id="inp_p_down" data-map="p_down" oninput="autoComma(this); update('p_down', this.value)"></div>
+        <div class="form-group"><label>จำนวนงวดทั้งหมด (เดือน)</label><input type="number" id="installments" data-map="p_install" oninput="update('p_install', this.value); generateTable()"></div>
+        <div class="form-group"><label>งวดละ (บาท)</label><input type="text" id="amountPerMonth" data-map="p_amount" oninput="autoComma(this); update('p_amount', this.value); generateTable()"></div>
+        <div class="form-group"><label>ชำระทุกวันที่</label><input type="text" id="inp_p_day" data-map="p_day" oninput="update('p_day', this.value)"></div>
+        
+        <div class="form-group">
+            <label>เริ่มงวดแรก (ว/ด/ป)</label>
+            <input type="date" id="startDate" data-map="p_first" 
+                   oninput="update('p_first', formatDate(this.value)); generateTable()" 
+                   onchange="update('p_first', formatDate(this.value)); generateTable()">
+        </div>
+        
+        <div class="payment-update-box">
+            <h4>💰 อัปเดตการชำระเงิน</h4>
+            <div class="form-group">
+                <label>เลือกงวดที่ต้องการอัปเดต</label>
+                <select id="pay_installment_no">
+                    <option value="">-- กรุณากรอกจำนวนงวดก่อน --</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="background: rgba(0,0,0,0.1); padding:10px; border-radius:4px;">
+                <label>จำนวนยอดที่ชำระ (บาท)</label>
+                <input type="text" id="pay_amount_val" oninput="autoComma(this)" placeholder="ระบุยอดเงินที่จ่ายจริง...">
+            </div>
+
+            <div class="form-group">
+                <label>วิธีการชำระ</label>
+                <select id="pay_method_val">
+                    <option value="-">- เลือก -</option>
+                    <option value="เงินสด">💵 เงินสด</option>
+                    <option value="โอน">🏦 โอน</option>
+                    <option value="โอนร้าน">🏪 โอนร้าน</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>วันที่จ่ายจริง</label>
+                <input type="date" id="pay_actual_date">
+            </div>
+            <div class="form-group">
+                <label>เลขที่ใบเสร็จ</label>
+                <input type="text" id="pay_receipt_no" placeholder="เช่น RC-001">
+            </div>
+            <button class="btn-master" style="background:#27ae60; font-size:14px; padding:10px;" onclick="updatePaymentRecord()">บันทึกข้อมูลการจ่ายงวดนี้</button>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-master" onclick="runAllActions()">
+                <i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)
+            </button>
+            <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #aaa;">
+                (ดาวน์โหลด JPG + อัปโหลด Excel/JPG/PDF ขึ้น Drive)
+            </div>
+        </div>
+        
+        <div class="floating-tools">
+            <button class="tool-btn btn-mic" id="btnMic" onclick="toggleVoice()" title="พูด">
+                <i class="fas fa-microphone"></i> พูด
+            </button>
+            <div style="width:1px; height:30px; background:rgba(255,255,255,0.2); margin:0 5px;"></div>
+            <button class="tool-btn btn-undo" onclick="undo()" id="btnUndo" title="ย้อนกลับ">
+                <i class="fas fa-undo"></i> ย้อน
+            </button>
+            <button class="tool-btn btn-redo" onclick="redo()" id="btnRedo" title="ทำซ้ำ">
+                <i class="fas fa-redo"></i> ซ้ำ
+            </button>
+            <button class="tool-btn btn-clear" onclick="clearForm()" title="ล้าง">
+                <i class="fas fa-trash-alt"></i> ล้าง
+            </button>
+        </div>
+        <br><br><br>
+    </div>
+
+    <div class="preview-panel">
+        <div class="legal-page" id="contractContent">
+            <div class="doc-header">
+                <div class="doc-line" style="justify-content: flex-end;">
+                    <span class="doc-label">สัญญาเลขที่</span><span class="fill-data fixed-width" id="c_no" style="width: 150px;"></span>
+                </div>
+                <div class="doc-line" style="justify-content: flex-end;">
+                    <span class="doc-label">วันที่</span><span class="fill-data fixed-width" id="c_date" style="width: 150px;"></span>
+                </div>
+            </div>
+
+            <div class="doc-section-title">ข้อมูลผู้ซื้อ</div>
+            <div class="doc-line">
+                <span class="doc-label">ชื่อผู้ซื้อ</span><span class="fill-data" id="b_name"></span>
+                <span class="doc-label">ชื่อเล่น</span><span class="fill-data fixed-width" id="b_nick" style="width: 80px;"></span>
+                <span class="doc-label">อายุ</span><span class="fill-data fixed-width" id="b_age" style="width: 50px;"></span>
+                <span class="doc-label">ปี</span>
+            </div>
+            <div class="doc-line"><span class="doc-label">เลขบัตรประชาชน</span><span class="fill-data" id="b_id_card"></span></div>
+            <div class="doc-line"><span class="doc-label">ที่อยู่ตามบัตรประชาชน</span><span class="fill-data" id="b_id_addr"></span></div>
+            <div class="doc-line"><span class="doc-label">ที่อยู่ปัจจุบัน</span><span class="fill-data" id="b_curr_addr"></span></div>
+            <div class="doc-line">
+                <span class="doc-label">เบอร์โทรบ้าน</span><span class="fill-data" id="b_tel"></span>
+                <span class="doc-label">เบอร์มือถือ</span><span class="fill-data" id="b_mobile"></span>
+            </div>
+            <div class="doc-line">
+                <span class="doc-label">ชื่อที่ทำงาน</span><span class="fill-data" id="b_work"></span>
+                <span class="doc-label">เบอร์โทรที่ทำงาน</span><span class="fill-data" id="b_work_tel"></span>
+            </div>
+            <div class="doc-line"><span class="doc-label">ที่อยู่ที่ทำงาน</span><span class="fill-data" id="b_work_addr"></span></div>
+            <div class="doc-line">
+                <span class="doc-label">ตำแหน่ง/แผนก</span><span class="fill-data" id="b_pos"></span>
+                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="b_exp" style="width: 100px;"></span>
+            </div>
+
+            <div class="doc-section-title">ข้อมูลผู้ค้ำ</div>
+            <div class="doc-line">
+                <span class="doc-label">ชื่อผู้ค้ำ</span><span class="fill-data" id="g_name"></span>
+                <span class="doc-label">ชื่อเล่น</span><span class="fill-data fixed-width" id="g_nick" style="width: 80px;"></span>
+                <span class="doc-label">อายุ</span><span class="fill-data fixed-width" id="g_age" style="width: 50px;"></span>
+                <span class="doc-label">ปี</span>
+            </div>
+            <div class="doc-line">
+                <span class="doc-label">ความสัมพันธ์</span><span class="fill-data" id="g_rel"></span>
+                <span class="doc-label">ที่อยู่ตามบัตรประชาชน</span><span class="fill-data" id="g_id_addr"></span>
+            </div>
+            <div class="doc-line"><span class="doc-label">ที่อยู่ปัจจุบัน</span><span class="fill-data" id="g_curr_addr"></span></div>
+            <div class="doc-line">
+                <span class="doc-label">เบอร์โทรบ้าน</span><span class="fill-data" id="g_tel"></span>
+                <span class="doc-label">เบอร์มือถือ</span><span class="fill-data" id="g_mobile"></span>
+            </div>
+            <div class="doc-line">
+                <span class="doc-label">ชื่อที่ทำงาน</span><span class="fill-data" id="g_work"></span>
+                <span class="doc-label">เบอร์โทรที่ทำงาน</span><span class="fill-data" id="g_work_tel"></span>
+            </div>
+            <div class="doc-line"><span class="doc-label">ที่อยู่ที่ทำงาน</span><span class="fill-data" id="g_work_addr"></span></div>
+            <div class="doc-line">
+                <span class="doc-label">ตำแหน่ง/แผนก</span><span class="fill-data" id="g_pos"></span>
+                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="g_exp" style="width: 100px;"></span>
+            </div>
+
+            <div class="doc-section-title">รายละเอียดสัญญา</div>
+            <div class="doc-line">
+                <span class="doc-label">ชื่อสินค้า</span><span class="fill-data" id="p_name"></span>
+                <span class="doc-label">ชำระวันทำสัญญา</span><span class="fill-data" id="p_down" style="width: 100px;"></span>
+                <span class="doc-label">บาท</span>
+            </div>
+            <div class="doc-line">
+                <span class="doc-label">แบ่งชำระ</span><span class="fill-data fixed-width" id="p_install" style="width: 50px;"></span>
+                <span class="doc-label">งวดละ</span><span class="fill-data" id="p_amount"></span>
+                <span class="doc-label">บาท ทุกวันที่</span><span class="fill-data fixed-width" id="p_day" style="width: 50px;"></span>
+            </div>
+            <div class="doc-line">
+                <span class="doc-label">เริ่มงวดแรก</span><span class="fill-data" id="p_first"></span>
+                <span class="doc-label">งวดสุดท้าย</span><span class="fill-data" id="p_last"></span>
+            </div>
+
+            <div class="doc-section-title">ตารางผ่อนชำระ</div>
+            <table id="paymentTable">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">งวด</th><th style="width: 15%;">วัน/เดือน/ปี<br>(สัญญา)</th>
+                        <th style="width: 20%;">จำนวนเงิน</th><th style="width: 20%;">วิธีชำระ</th>
+                        <th style="width: 15%;">วัน/เดือน/ปี<br>(จ่ายจริง)</th><th style="width: 20%;">เลขที่ใบรับ</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ************************************************************
+        // ใส่ URL ของ Google Apps Script ของคุณที่นี่
+        // ************************************************************
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfOneDSjdFaQHIkJJZypqKHDYJofcO4xyMw5mD2C95405MLUH9RSRjLWloS-5LjzA5/exec';
+        
+        let paymentRecords = {};
+
+        function formatIdCard(obj) {
+            let val = obj.value.replace(/[^0-9]/g, '');
+            if(val.length > 13) val = val.substring(0, 13);
+            let result = '';
+            if(val.length > 0) result += val.substr(0, 1);
+            if(val.length > 1) result += '-' + val.substr(1, 4);
+            if(val.length > 5) result += '-' + val.substr(5, 5);
+            if(val.length > 10) result += '-' + val.substr(10, 2);
+            if(val.length > 12) result += '-' + val.substr(12, 1);
+            obj.value = result;
+        }
+
+        let historyStack = [];
+        let historyIndex = -1;
+        let isRestoring = false;
+        let saveTimeout;
+
+        function saveState(force = false) {
+            if (isRestoring) return;
+            clearTimeout(saveTimeout);
+            const performSave = () => {
+                const inputs = document.querySelectorAll('.input-panel input:not(.search-box input), .input-panel select');
+                const currentState = [];
+                inputs.forEach(input => currentState.push(input.value));
+                if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
+                const lastState = historyStack[historyStack.length - 1];
+                if (!force && lastState && JSON.stringify(lastState) === JSON.stringify(currentState)) return;
+                historyStack.push(currentState);
+                historyIndex++;
+                updateButtonStates();
+            };
+            if (force) performSave(); else saveTimeout = setTimeout(performSave, 500);
+        }
+
+        function restoreState(index) {
+            if (index < 0 || index >= historyStack.length) return;
+            isRestoring = true;
+            const state = historyStack[index];
+            const inputs = document.querySelectorAll('.input-panel input:not(.search-box input), .input-panel select');
+            inputs.forEach((input, i) => {
+                if(state[i] !== undefined) {
+                    input.value = state[i];
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            historyIndex = index;
+            updateButtonStates();
+            setTimeout(() => { isRestoring = false; }, 100);
+        }
+
+        function undo() { if (historyIndex > 0) restoreState(historyIndex - 1); }
+        function redo() { if (historyIndex < historyStack.length - 1) restoreState(historyIndex + 1); }
+        function clearForm() {
+            if (confirm('คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?')) {
+                isRestoring = true;
+                document.querySelectorAll('.input-panel input:not(.search-box input)').forEach(input => { input.value = ""; input.dispatchEvent(new Event('input')); });
+                paymentRecords = {};
+                generateTable();
+                isRestoring = false;
+                saveState(true);
+            }
+        }
+        function updateButtonStates() {
+            document.getElementById('btnUndo').disabled = (historyIndex <= 0);
+            document.getElementById('btnRedo').disabled = (historyIndex >= historyStack.length - 1);
+            document.getElementById('btnUndo').style.opacity = (historyIndex <= 0) ? "0.5" : "1";
+            document.getElementById('btnRedo').style.opacity = (historyIndex >= historyStack.length - 1) ? "0.5" : "1";
+        }
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
+        });
+
+        let recognition;
+        let activeInput = null; 
+        function initVoiceSystem() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { document.getElementById('btnMic').style.display = 'none'; return; }
+            recognition = new SpeechRecognition();
+            recognition.lang = 'th-TH';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            const btnMic = document.getElementById('btnMic');
+            recognition.onstart = function() { btnMic.classList.add('listening'); btnMic.innerHTML = '<i class="fas fa-microphone-slash"></i> ฟังอยู่...'; };
+            recognition.onend = function() { btnMic.classList.remove('listening'); btnMic.innerHTML = '<i class="fas fa-microphone"></i> พูด'; };
+            recognition.onresult = function(event) {
+                if (activeInput) {
+                    activeInput.value = event.results[0][0].transcript;
+                    activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    saveState(true); 
+                } else alert("คลิกช่องที่จะพิมพ์ก่อนครับ");
+            };
+            const inputs = document.querySelectorAll('.input-panel input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => { activeInput = input; });
+                input.addEventListener('input', () => saveState());
+            });
+            if(inputs.length > 0) activeInput = inputs[0];
+        }
+        function toggleVoice() {
+            const btnMic = document.getElementById('btnMic');
+            if (btnMic.classList.contains('listening')) recognition.stop();
+            else {
+                if(!activeInput) { alert("คลิกช่องที่จะพิมพ์ก่อนครับ"); return; }
+                recognition.start();
+            }
+        }
+
+        function applySmartFormatting(id, value) {
+            let formatted = value;
+            if (id === 'b_name' || id === 'g_name') formatted = formatted.replace(/\s+/g, ' ').trim();
+            const addressFields = ['b_id_addr', 'b_curr_addr', 'b_work_addr', 'g_id_addr', 'g_curr_addr', 'g_work_addr'];
+            if (addressFields.includes(id)) {
+                formatted = formatted.replace(/\s*ตำบล\s*/g, " ต.").replace(/\s*อำเภอ\s*/g, "  อ.").replace(/\s*จังหวัด\s*/g, "  จ.").replace(/\s*แขวง\s*/g, " แขวง").replace(/\s*เขต\s*/g, "  เขต").trim();
+            }
+            return formatted;
+        }
+        function autoComma(obj) {
+            var value = obj.value.replace(/,/g, '');
+            if (!isNaN(value) && value !== "") {
+                var parts = value.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                obj.value = parts.join('.');
+            } else { obj.value = value; }
+        }
+        function update(id, value) {
+            let finalValue = applySmartFormatting(id, value);
+            if (!finalValue || finalValue.trim() === "") finalValue = "-";
+            document.getElementById(id).innerText = finalValue;
+            if(id === 'c_no') document.title = "สัญญา_" + (value ? value.replace(/\//g, "-") : "ไม่มีเลขที่");
+        }
+        function formatDate(dateString) {
+            if(!dateString) return "";
+            const date = new Date(dateString);
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
+        }
+        
+        function updatePaymentRecord() {
+            const installNo = document.getElementById('pay_installment_no').value;
+            const actDate = document.getElementById('pay_actual_date').value;
+            const recNo = document.getElementById('pay_receipt_no').value;
+            const payAmount = document.getElementById('pay_amount_val').value;
+            const payMethod = document.getElementById('pay_method_val').value;
+
+            if(!installNo) { alert("กรุณาเลือกงวด"); return; }
+            
+            paymentRecords[installNo] = {
+                actualDate: actDate ? formatDate(actDate) : "",
+                rawDate: actDate,
+                receiptNo: recNo,
+                paidAmount: payAmount, 
+                payMethod: payMethod
+            };
+            
+            generateTable(); 
+            alert(`✅ บันทึกข้อมูล งวดที่ ${installNo} แล้ว (อย่าลืมกดปุ่ม "บันทึก" ด้านล่างเพื่อส่งข้อมูล)`);
+        }
+
+        function generateTable() {
+            const inputInstallments = parseInt(document.getElementById('installments').value) || 0;
+            const fixedRows = 12; 
+            let startDateVal = document.getElementById('startDate').value;
+            const tbody = document.querySelector("#paymentTable tbody");
+            const select = document.getElementById("pay_installment_no");
+            
+            tbody.innerHTML = "";
+            
+            let currentSelect = select.value;
+            select.innerHTML = '<option value="">-- เลือกงวด --</option>';
+
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+            for (let i = 0; i < fixedRows; i++) {
+                let dateStr = "";
+                let actDateStr = "";
+                let receiptStr = "";
+                let paidAmountStr = "";
+                let methodStr = "";
+                let instNum = i + 1;
+
+                if (i < inputInstallments) {
+                    // Logic คำนวณวันที่
+                    if(startDateVal) {
+                        const startObj = new Date(startDateVal);
+                        const originalDay = startObj.getDate();
+                        let currentYear = startObj.getFullYear();
+                        let currentMonth = startObj.getMonth() + i;
+                        let lastDayOfTargetMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        let dayToUse = Math.min(originalDay, lastDayOfTargetMonth);
+                        let targetDate = new Date(currentYear, currentMonth, dayToUse);
+                        dateStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear() + 543}`;
+                    }
+
+                    let opt = document.createElement("option");
+                    opt.value = instNum;
+                    opt.text = `งวดที่ ${instNum} (${dateStr || 'ยังไม่ระบุวัน'})`;
+                    select.appendChild(opt);
+
+                    if(paymentRecords[instNum]) {
+                        actDateStr = paymentRecords[instNum].actualDate || "";
+                        receiptStr = paymentRecords[instNum].receiptNo || "";
+                        paidAmountStr = paymentRecords[instNum].paidAmount || "";
+                        methodStr = paymentRecords[instNum].payMethod || "";
+                    } else {
+                        paidAmountStr = ""; 
+                        methodStr = ""; 
+                    }
+                    
+                    if (i === inputInstallments - 1) document.getElementById('p_last').innerText = dateStr;
+                }
+                
+                tbody.innerHTML += `<tr>
+                    <td>${i < inputInstallments ? instNum : (instNum)}</td>
+                    <td>${dateStr}</td>
+                    <td>${i < inputInstallments ? paidAmountStr : ""}</td>
+                    <td>${methodStr}</td>
+                    <td style="color:red;">${actDateStr}</td>
+                    <td style="color:red; font-weight:bold;">${receiptStr}</td>
+                </tr>`;
+            }
+            
+            if(select.querySelector(`option[value='${currentSelect}']`)) {
+                select.value = currentSelect;
+            }
+        }
+
+        function getText(id) { return document.getElementById(id).innerText || ""; }
+
+        async function searchContract() {
+            const searchNo = document.getElementById('searchInput').value.trim();
+            if(!searchNo) { alert("กรุณากรอกเลขที่สัญญา"); return; }
+            
+            const btn = document.querySelector('.btn-search');
+            btn.innerText = "กำลังค้นหา..."; btn.disabled = true;
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'search', contract_no: searchNo })
+                });
+                
+                const result = await response.json();
+                
+                if(result.status === 'success') {
+                    const data = result.data;
+                    
+                    for (const key in data) {
+                        const input = document.querySelector(`[data-map="${key}"]`);
+                        if(input) {
+                            let val = data[key];
+                            
+                            // แก้ไข: ตัดรูปแบบวันที่ให้ถูกต้อง (YYYY-MM-DD) ก่อนใส่ลง input
+                            if(input.type === 'date' && val && val.length > 10) {
+                                val = val.substring(0, 10);
+                            }
+                            
+                            input.value = val;
+                            const eventType = input.type === 'date' ? 'change' : 'input';
+                            input.dispatchEvent(new Event(eventType));
+                        }
+                    }
+
+                    if(data.payment_records_json) {
+                        try {
+                            paymentRecords = JSON.parse(data.payment_records_json);
+                        } catch(e) { paymentRecords = {}; }
+                    } else {
+                        paymentRecords = {};
+                    }
+                    
+                    generateTable();
+                    alert("✅ พบข้อมูลสัญญา: " + data.b_name);
+                } else {
+                    alert("❌ ไม่พบข้อมูลสัญญานี้ หรือเกิดข้อผิดพลาด");
+                }
+
+            } catch(e) {
+                console.error(e);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ: " + e.message);
+            } finally {
+                btn.innerText = "ค้นหา"; btn.disabled = false;
+            }
+        }
+
+        async function runAllActions() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ กำลังบันทึกและสร้างไฟล์..."; btn.disabled = true;
+
+            try {
+                let formData = {
+                    action: 'save',
+                    payment_records_json: JSON.stringify(paymentRecords)
+                };
+                
+                document.querySelectorAll('[data-map]').forEach(el => {
+                    formData[el.getAttribute('data-map')] = el.value;
+                });
+
+                formData.file_name_base = `สัญญา_${formData.c_no || 'ไม่มีเลข'}_${formData.b_name || 'ลูกค้า'}`.replace(/[\/\s]/g, "-");
+
+                var wb = XLSX.utils.book_new();
+                
+                let excelRows = [
+                    ["Field Code", "Value", "Description"],
+                    ["c_no", formData.c_no, "เลขที่สัญญา"],
+                    ["c_date", formData.c_date, "วันที่ทำสัญญา"],
+                    ["b_name", formData.b_name, "ชื่อผู้ซื้อ"],
+                    ["b_id_card", formData.b_id_card, "เลขบัตร ปชช."]
+                ];
+                for(let key in formData) {
+                    if(!['action','excel_base64','image_base64','pdf_base64'].includes(key)) {
+                        excelRows.push([key, formData[key], ""]);
+                    }
+                }
+                var ws = XLSX.utils.aoa_to_sheet(excelRows);
+                XLSX.utils.book_append_sheet(wb, ws, "ข้อมูลสัญญา");
+
+                let scheduleRows = [["งวดที่", "วันครบกำหนด", "จำนวนเงินงวด", "วิธีชำระ", "วันที่จ่ายจริง", "เลขที่ใบเสร็จ"]];
+                const inputInstallments = parseInt(document.getElementById('installments').value) || 0;
+                let startDateVal = document.getElementById('startDate').value;
+                const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+                for (let i = 0; i < inputInstallments; i++) {
+                    let dateStr = "";
+                    if(startDateVal) {
+                        const startObj = new Date(startDateVal);
+                        const originalDay = startObj.getDate();
+                        let currentYear = startObj.getFullYear();
+                        let currentMonth = startObj.getMonth() + i;
+                        let lastDayOfTargetMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        let dayToUse = Math.min(originalDay, lastDayOfTargetMonth);
+                        let targetDate = new Date(currentYear, currentMonth, dayToUse);
+                        dateStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear() + 543}`;
+                    }
+                    
+                    let instNum = i + 1;
+                    let record = paymentRecords[instNum] || {};
+                    scheduleRows.push([
+                        instNum,
+                        dateStr,
+                        record.paidAmount || "",
+                        record.payMethod || "",
+                        record.actualDate || "",
+                        record.receiptNo || ""
+                    ]);
+                }
+                var wsSchedule = XLSX.utils.aoa_to_sheet(scheduleRows);
+                XLSX.utils.book_append_sheet(wb, wsSchedule, "ตารางผ่อนชำระ");
+
+                const excelBase64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+
+                const canvas = await html2canvas(document.getElementById('contractContent'), { scale: 2, backgroundColor: "#ffffff" });
+                const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = imageBase64;
+                downloadLink.download = formData.file_name_base + ".jpg";
+                downloadLink.click();
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'legal');
+                const imgProps = doc.getImageProperties(imageBase64);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                doc.addImage(imageBase64, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+                formData.excel_base64 = excelBase64;
+                formData.image_base64 = imageBase64;
+                formData.pdf_base64 = pdfBase64;
+
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(formData) });
+                
+                alert("✅ สำเร็จ!\n1. รูปภาพถูกดาวน์โหลดลงเครื่องแล้ว\n2. ข้อมูลถูกบันทึกบน Server แล้ว\n3. ไฟล์ Excel/PDF/JPG ถูกส่งเข้า Drive แล้ว");
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ เกิดข้อผิดพลาด: " + error.message);
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)';
+                btn.disabled = false;
+            }
+        }
+
+        window.onload = function() {
+            generateTable(); initVoiceSystem();
+            document.querySelectorAll('.fill-data').forEach(field => { if (!field.innerText || field.innerText.trim() === "") field.innerText = "-"; });
+            saveState(true);
+        };
+    </script>
+</body>
+</html>
