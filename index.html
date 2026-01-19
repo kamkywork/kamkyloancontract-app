@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Date</title> 
+    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Phone (Input Mask)</title> 
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
@@ -168,10 +168,12 @@
         </div>
         <div class="form-group"><label>ที่อยู่ตามบัตรประชาชน</label><input type="text" id="inp_b_id_addr" data-map="b_id_addr" oninput="update('b_id_addr', this.value)"></div>
         <div class="form-group"><label>ที่อยู่ปัจจุบัน</label><input type="text" id="inp_b_curr_addr" data-map="b_curr_addr" oninput="update('b_curr_addr', this.value)"></div>
-        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_b_tel" data-map="b_tel" oninput="update('b_tel', this.value)"></div>
-        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_b_mobile" data-map="b_mobile" oninput="update('b_mobile', this.value)"></div>
+        
+        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_b_tel" data-map="b_tel" oninput="formatPhone(this); update('b_tel', this.value)" maxlength="12" placeholder="02-XXX-XXXX"></div>
+        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_b_mobile" data-map="b_mobile" oninput="formatPhone(this); update('b_mobile', this.value)" maxlength="12" placeholder="08X-XXX-XXXX"></div>
+        
         <div class="form-group"><label>สถานที่ทำงาน</label><input type="text" id="inp_b_work" data-map="b_work" oninput="update('b_work', this.value)"></div>
-        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_b_work_tel" data-map="b_work_tel" oninput="update('b_work_tel', this.value)"></div>
+        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_b_work_tel" data-map="b_work_tel" oninput="formatPhone(this); update('b_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_b_work_addr" data-map="b_work_addr" oninput="update('b_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_b_pos" data-map="b_pos" oninput="update('b_pos', this.value)"></div>
         <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)"></div>
@@ -183,10 +185,12 @@
         <div class="form-group"><label>ความสัมพันธ์</label><input type="text" id="inp_g_rel" data-map="g_rel" oninput="update('g_rel', this.value)"></div>
         <div class="form-group"><label>ที่อยู่ตามบัตรประชาชน</label><input type="text" id="inp_g_id_addr" data-map="g_id_addr" oninput="update('g_id_addr', this.value)"></div>
         <div class="form-group"><label>ที่อยู่ปัจจุบัน</label><input type="text" id="inp_g_curr_addr" data-map="g_curr_addr" oninput="update('g_curr_addr', this.value)"></div>
-        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_g_tel" data-map="g_tel" oninput="update('g_tel', this.value)"></div>
-        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_g_mobile" data-map="g_mobile" oninput="update('g_mobile', this.value)"></div>
+        
+        <div class="form-group"><label>เบอร์โทรบ้าน</label><input type="text" id="inp_g_tel" data-map="g_tel" oninput="formatPhone(this); update('g_tel', this.value)" maxlength="12"></div>
+        <div class="form-group"><label>เบอร์มือถือ</label><input type="text" id="inp_g_mobile" data-map="g_mobile" oninput="formatPhone(this); update('g_mobile', this.value)" maxlength="12"></div>
+        
         <div class="form-group"><label>สถานที่ทำงาน</label><input type="text" id="inp_g_work" data-map="g_work" oninput="update('g_work', this.value)"></div>
-        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_g_work_tel" data-map="g_work_tel" oninput="update('g_work_tel', this.value)"></div>
+        <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_g_work_tel" data-map="g_work_tel" oninput="formatPhone(this); update('g_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_g_work_addr" data-map="g_work_addr" oninput="update('g_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_g_pos" data-map="g_pos" oninput="update('g_pos', this.value)"></div>
         <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)"></div>
@@ -362,7 +366,7 @@
         // ************************************************************
         // ใส่ URL ของ Google Apps Script ของคุณที่นี่
         // ************************************************************
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfOneDSjdFaQHIkJJZypqKHDYJofcO4xyMw5mD2C95405MLUH9RSRjLWloS-5LjzA5/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwnB2paW6EcNO_JSu5Ob0AIlip732QB8dU8tHICbH-Up_H4GbfXgf-tEbrDvKVfEJM/exec';
         
         let paymentRecords = {};
 
@@ -376,6 +380,49 @@
             if(val.length > 10) result += '-' + val.substr(10, 2);
             if(val.length > 12) result += '-' + val.substr(12, 1);
             obj.value = result;
+        }
+
+        // ==========================================
+        // ฟังก์ชันจัดรูปแบบเบอร์โทรศัพท์ (ใหม่)
+        // ==========================================
+        function formatPhone(obj) {
+            let raw = obj.value.replace(/[^0-9]/g, ''); // เอาเฉพาะตัวเลข
+            let isMobileField = obj.id.includes('mobile'); // ตรวจสอบว่าเป็นช่องมือถือหรือไม่
+            
+            let formatted = raw;
+
+            if (isMobileField) {
+                // กฏเบอร์มือถือ: 000-000-0000 (10 หลัก)
+                if (raw.length > 10) raw = raw.substring(0, 10);
+                
+                if (raw.length > 6) {
+                    formatted = raw.slice(0,3) + '-' + raw.slice(3,6) + '-' + raw.slice(6);
+                } else if (raw.length > 3) {
+                    formatted = raw.slice(0,3) + '-' + raw.slice(3);
+                } else {
+                    formatted = raw;
+                }
+            } else {
+                // กฏเบอร์บ้าน/ที่ทำงาน: 00-000-0000 (9 หลัก)
+                // แต่เผื่อกรณีคนกรอกมือถือลงช่องนี้ จะยอมให้เป็น 10 หลักได้
+                if (raw.length > 10) raw = raw.substring(0, 10);
+                
+                if (raw.length === 10) {
+                     // ถ้ากรอกมา 10 ตัว ให้ใช้ format มือถือ (000-000-0000)
+                     formatted = raw.slice(0,3) + '-' + raw.slice(3,6) + '-' + raw.slice(6);
+                } else {
+                     // ถ้ากรอก 9 ตัว หรือกำลังพิมพ์ ให้ใช้ format เบอร์บ้าน (00-000-0000)
+                     if (raw.length > 5) {
+                        formatted = raw.slice(0,2) + '-' + raw.slice(2,5) + '-' + raw.slice(5);
+                     } else if (raw.length > 2) {
+                        formatted = raw.slice(0,2) + '-' + raw.slice(2);
+                     } else {
+                        formatted = raw;
+                     }
+                }
+            }
+            
+            obj.value = formatted;
         }
 
         let historyStack = [];
