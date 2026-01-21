@@ -200,7 +200,7 @@
         <div class="form-group"><label>ชำระวันทำสัญญา (บาท)</label><input type="text" id="inp_p_down" data-map="p_down" oninput="autoComma(this); update('p_down', this.value)"></div>
         <div class="form-group"><label>จำนวนงวดทั้งหมด (เดือน)</label><input type="number" id="installments" data-map="p_install" oninput="update('p_install', this.value); generateTable()"></div>
         <div class="form-group"><label>งวดละ (บาท)</label><input type="text" id="amountPerMonth" data-map="p_amount" oninput="autoComma(this); update('p_amount', this.value); generateTable()"></div>
-        <div class="form-group"><label>ชำระทุกวันที่</label><input type="text" id="inp_p_day" data-map="p_day" oninput="update('p_day', this.value)"></div>
+        <div class="form-group"><label>ชำระทุกวันที่</label><input type="text" id="inp_p_day" data-map="p_day" oninput="update('p_day', this.value); generateTable()"></div>
         
         <div class="form-group">
             <label>เริ่มงวดแรก (ว/ด/ป)</label>
@@ -596,17 +596,35 @@
                 let instNum = i + 1;
 
                 if (i < inputInstallments) {
-                    // Logic คำนวณวันที่
-                    if(startDateVal) {
-                        const startObj = new Date(startDateVal);
-                        const originalDay = startObj.getDate();
+                    // Logic คำนวณวันที่ (แก้ไขใหม่)
+                if(startDateVal) {
+                    const startObj = new Date(startDateVal);
+                    let targetDate;
+
+                    if (i === 0) {
+                        // งวดแรก: ใช้วันที่ที่ระบุในช่อง "เริ่มงวดแรก" เสมอ (เช่น 28 ก.พ.)
+                        targetDate = startObj;
+                    } else {
+                        // งวดถัดไป: พยายามใช้วันที่จากช่อง "ชำระทุกวันที่" (เช่น 31)
+                        let payDayVal = parseInt(document.getElementById('inp_p_day').value);
+                        // ถ้าไม่ได้กรอก หรือกรอกมั่ว ให้กลับไปใช้วันที่ของงวดแรก
+                        let preferredDay = (payDayVal && payDayVal > 0 && payDayVal <= 31) ? payDayVal : startObj.getDate();
+                        
                         let currentYear = startObj.getFullYear();
                         let currentMonth = startObj.getMonth() + i;
+                        
+                        // หาวันสุดท้ายของเดือนนั้นๆ (เช่น ก.พ.=28, เม.ย.=30)
                         let lastDayOfTargetMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                        let dayToUse = Math.min(originalDay, lastDayOfTargetMonth);
-                        let targetDate = new Date(currentYear, currentMonth, dayToUse);
-                        dateStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear() + 543}`;
+                        
+                        // เลือกวันที่ที่น้อยที่สุดเพื่อไม่ให้เกินสิ้นเดือน
+                        // (เช่น อยากจ่าย 31 แต่เดือนนั้นมี 30 ก็จะปรับเป็น 30 ให้อัตโนมัติ)
+                        let dayToUse = Math.min(preferredDay, lastDayOfTargetMonth);
+                        
+                        targetDate = new Date(currentYear, currentMonth, dayToUse);
                     }
+
+                    dateStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear() + 543}`;
+                }
 
                     let opt = document.createElement("option");
                     opt.value = instNum;
