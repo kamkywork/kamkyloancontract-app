@@ -176,7 +176,7 @@
         <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_b_work_tel" data-map="b_work_tel" oninput="formatPhone(this); update('b_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_b_work_addr" data-map="b_work_addr" oninput="update('b_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_b_pos" data-map="b_pos" oninput="update('b_pos', this.value)"></div>
-        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)" placeholder="เช่น 5 หรือ 5.6"></div>
 
         <div class="section-header">ข้อมูลผู้ค้ำประกัน</div>
         <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp_g_name" data-map="g_name" oninput="update('g_name', this.value)"></div>
@@ -193,7 +193,7 @@
         <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_g_work_tel" data-map="g_work_tel" oninput="formatPhone(this); update('g_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_g_work_addr" data-map="g_work_addr" oninput="update('g_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_g_pos" data-map="g_pos" oninput="update('g_pos', this.value)"></div>
-        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)" placeholder="เช่น 5 หรือ 5.6"></div>
 
         <div class="section-header">รายละเอียดสัญญา</div>
         <div class="form-group"><label>ชื่อสินค้า</label><input type="text" id="inp_p_name" data-map="p_name" oninput="update('p_name', this.value)"></div>
@@ -303,7 +303,7 @@
             <div class="doc-line"><span class="doc-label">ที่อยู่ที่ทำงาน</span><span class="fill-data" id="b_work_addr"></span></div>
             <div class="doc-line">
                 <span class="doc-label">ตำแหน่ง/แผนก</span><span class="fill-data" id="b_pos"></span>
-                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="b_exp" style="width: 100px;"></span>
+                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="b_exp" style="width: 120px;"></span>
             </div>
 
             <div class="doc-section-title">ข้อมูลผู้ค้ำ</div>
@@ -329,7 +329,7 @@
             <div class="doc-line"><span class="doc-label">ที่อยู่ที่ทำงาน</span><span class="fill-data" id="g_work_addr"></span></div>
             <div class="doc-line">
                 <span class="doc-label">ตำแหน่ง/แผนก</span><span class="fill-data" id="g_pos"></span>
-                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="g_exp" style="width: 100px;"></span>
+                <span class="doc-label">อายุงาน</span><span class="fill-data fixed-width" id="g_exp" style="width: 120px;"></span>
             </div>
 
             <div class="doc-section-title">รายละเอียดสัญญา</div>
@@ -366,7 +366,7 @@
         // ************************************************************
         // ใส่ URL ของ Google Apps Script ของคุณที่นี่
         // ************************************************************
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwv-zrFtI-CFSkAtK5NnLfsAnc5n4gWIkXYICUnKfhUG6twkyE6hvKNlGqTFQ288xW/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZCZMzcnaDRKox-kWVYdWLoGPwDFcoFsqiAEKBz1URDhdAI3Vm61MYaM8IwopoBtWG/exec';
         
         let paymentRecords = {};
 
@@ -383,18 +383,16 @@
         }
 
         // ==========================================
-        // ฟังก์ชันจัดรูปแบบเบอร์โทรศัพท์ (ใหม่)
+        // ฟังก์ชันจัดรูปแบบเบอร์โทรศัพท์
         // ==========================================
         function formatPhone(obj) {
-            let raw = obj.value.replace(/[^0-9]/g, ''); // เอาเฉพาะตัวเลข
-            let isMobileField = obj.id.includes('mobile'); // ตรวจสอบว่าเป็นช่องมือถือหรือไม่
+            let raw = obj.value.replace(/[^0-9]/g, ''); 
+            let isMobileField = obj.id.includes('mobile'); 
             
             let formatted = raw;
 
             if (isMobileField) {
-                // กฏเบอร์มือถือ: 000-000-0000 (10 หลัก)
                 if (raw.length > 10) raw = raw.substring(0, 10);
-                
                 if (raw.length > 6) {
                     formatted = raw.slice(0,3) + '-' + raw.slice(3,6) + '-' + raw.slice(6);
                 } else if (raw.length > 3) {
@@ -403,15 +401,10 @@
                     formatted = raw;
                 }
             } else {
-                // กฏเบอร์บ้าน/ที่ทำงาน: 00-000-0000 (9 หลัก)
-                // แต่เผื่อกรณีคนกรอกมือถือลงช่องนี้ จะยอมให้เป็น 10 หลักได้
                 if (raw.length > 10) raw = raw.substring(0, 10);
-                
                 if (raw.length === 10) {
-                     // ถ้ากรอกมา 10 ตัว ให้ใช้ format มือถือ (000-000-0000)
                      formatted = raw.slice(0,3) + '-' + raw.slice(3,6) + '-' + raw.slice(6);
                 } else {
-                     // ถ้ากรอก 9 ตัว หรือกำลังพิมพ์ ให้ใช้ format เบอร์บ้าน (00-000-0000)
                      if (raw.length > 5) {
                         formatted = raw.slice(0,2) + '-' + raw.slice(2,5) + '-' + raw.slice(5);
                      } else if (raw.length > 2) {
@@ -421,7 +414,6 @@
                      }
                 }
             }
-            
             obj.value = formatted;
         }
 
@@ -522,8 +514,31 @@
             }
         }
 
+        // ==========================================
+        // ฟังก์ชันจัดรูปแบบข้อความอัตโนมัติ (แก้ไขเพิ่มเติมอายุงาน)
+        // ==========================================
         function applySmartFormatting(id, value) {
             let formatted = value;
+
+            // --- ส่วนที่แก้ไข: เพิ่ม logic สำหรับอายุงาน (b_exp, g_exp) ---
+            if (id === 'b_exp' || id === 'g_exp') {
+                // กรองเอาเฉพาะตัวเลขและตัวคั่น (/, ., -, ช่องว่าง)
+                let cleanVal = formatted.replace(/[^\d\/\.\-\s]/g, '').trim();
+                
+                // แยกปีและเดือนออกจากกันด้วยตัวคั่น
+                let parts = cleanVal.split(/[\/\.\-\s]+/);
+                
+                if (parts.length > 0 && parts[0] !== "") {
+                    // ใส่ปี
+                    formatted = parts[0] + " ปี";
+                    // ถ้ามีส่วนหลัง ให้ใส่เดือน
+                    if (parts.length > 1 && parts[1] !== "") {
+                        formatted += " " + parts[1] + " เดือน";
+                    }
+                }
+            }
+            // --------------------------------------------------------
+
             if (id === 'b_name' || id === 'g_name') formatted = formatted.replace(/\s+/g, ' ').trim();
             const addressFields = ['b_id_addr', 'b_curr_addr', 'b_work_addr', 'g_id_addr', 'g_curr_addr', 'g_work_addr'];
             if (addressFields.includes(id)) {
@@ -531,6 +546,7 @@
             }
             return formatted;
         }
+
         function autoComma(obj) {
             var value = obj.value.replace(/,/g, '');
             if (!isNaN(value) && value !== "") {
@@ -596,28 +612,21 @@
                 let instNum = i + 1;
 
                 if (i < inputInstallments) {
-                    // Logic คำนวณวันที่ (แก้ไขใหม่)
+                    
                 if(startDateVal) {
                     const startObj = new Date(startDateVal);
                     let targetDate;
 
                     if (i === 0) {
-                        // งวดแรก: ใช้วันที่ที่ระบุในช่อง "เริ่มงวดแรก" เสมอ (เช่น 28 ก.พ.)
                         targetDate = startObj;
                     } else {
-                        // งวดถัดไป: พยายามใช้วันที่จากช่อง "ชำระทุกวันที่" (เช่น 31)
                         let payDayVal = parseInt(document.getElementById('inp_p_day').value);
-                        // ถ้าไม่ได้กรอก หรือกรอกมั่ว ให้กลับไปใช้วันที่ของงวดแรก
                         let preferredDay = (payDayVal && payDayVal > 0 && payDayVal <= 31) ? payDayVal : startObj.getDate();
                         
                         let currentYear = startObj.getFullYear();
                         let currentMonth = startObj.getMonth() + i;
                         
-                        // หาวันสุดท้ายของเดือนนั้นๆ (เช่น ก.พ.=28, เม.ย.=30)
                         let lastDayOfTargetMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-                        
-                        // เลือกวันที่ที่น้อยที่สุดเพื่อไม่ให้เกินสิ้นเดือน
-                        // (เช่น อยากจ่าย 31 แต่เดือนนั้นมี 30 ก็จะปรับเป็น 30 ให้อัตโนมัติ)
                         let dayToUse = Math.min(preferredDay, lastDayOfTargetMonth);
                         
                         targetDate = new Date(currentYear, currentMonth, dayToUse);
@@ -684,7 +693,6 @@
                         if(input) {
                             let val = data[key];
                             
-                            // แก้ไข: ตัดรูปแบบวันที่ให้ถูกต้อง (YYYY-MM-DD) ก่อนใส่ลง input
                             if(input.type === 'date' && val && val.length > 10) {
                                 val = val.substring(0, 10);
                             }
