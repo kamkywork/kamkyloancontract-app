@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Phone (Input Mask)</title> 
+    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Voice & Exp</title> 
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
@@ -176,7 +176,7 @@
         <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_b_work_tel" data-map="b_work_tel" oninput="formatPhone(this); update('b_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_b_work_addr" data-map="b_work_addr" oninput="update('b_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_b_pos" data-map="b_pos" oninput="update('b_pos', this.value)"></div>
-        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)" placeholder="เช่น 5 หรือ 5.6"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_b_exp" data-map="b_exp" oninput="update('b_exp', this.value)" placeholder="เช่น 5 หรือ 0/3"></div>
 
         <div class="section-header">ข้อมูลผู้ค้ำประกัน</div>
         <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp_g_name" data-map="g_name" oninput="update('g_name', this.value)"></div>
@@ -193,7 +193,7 @@
         <div class="form-group"><label>เบอร์ที่ทำงาน</label><input type="text" id="inp_g_work_tel" data-map="g_work_tel" oninput="formatPhone(this); update('g_work_tel', this.value)" maxlength="12"></div>
         <div class="form-group"><label>ที่อยู่ที่ทำงาน</label><input type="text" id="inp_g_work_addr" data-map="g_work_addr" oninput="update('g_work_addr', this.value)"></div>
         <div class="form-group"><label>ตำแหน่ง/แผนก</label><input type="text" id="inp_g_pos" data-map="g_pos" oninput="update('g_pos', this.value)"></div>
-        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)" placeholder="เช่น 5 หรือ 5.6"></div>
+        <div class="form-group"><label>อายุงาน (ปี/เดือน)</label><input type="text" id="inp_g_exp" data-map="g_exp" oninput="update('g_exp', this.value)" placeholder="เช่น 5 หรือ 0/3"></div>
 
         <div class="section-header">รายละเอียดสัญญา</div>
         <div class="form-group"><label>ชื่อสินค้า</label><input type="text" id="inp_p_name" data-map="p_name" oninput="update('p_name', this.value)"></div>
@@ -481,6 +481,10 @@
 
         let recognition;
         let activeInput = null; 
+        
+        // ==========================================
+        // แก้ไข 1: ระบบเสียง (พิมพ์ต่อท้าย ไม่ทับ)
+        // ==========================================
         function initVoiceSystem() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) { document.getElementById('btnMic').style.display = 'none'; return; }
@@ -491,13 +495,23 @@
             const btnMic = document.getElementById('btnMic');
             recognition.onstart = function() { btnMic.classList.add('listening'); btnMic.innerHTML = '<i class="fas fa-microphone-slash"></i> ฟังอยู่...'; };
             recognition.onend = function() { btnMic.classList.remove('listening'); btnMic.innerHTML = '<i class="fas fa-microphone"></i> พูด'; };
+            
             recognition.onresult = function(event) {
                 if (activeInput) {
-                    activeInput.value = event.results[0][0].transcript;
+                    const transcript = event.results[0][0].transcript;
+                    
+                    // เช็คว่ามีข้อความเดิมไหม ถ้ามีให้เว้นวรรคแล้วต่อด้วยข้อความใหม่
+                    if (activeInput.value && activeInput.value.trim() !== "") {
+                        activeInput.value = activeInput.value + " " + transcript;
+                    } else {
+                        activeInput.value = transcript;
+                    }
+
                     activeInput.dispatchEvent(new Event('input', { bubbles: true }));
                     saveState(true); 
                 } else alert("คลิกช่องที่จะพิมพ์ก่อนครับ");
             };
+            
             const inputs = document.querySelectorAll('.input-panel input');
             inputs.forEach(input => {
                 input.addEventListener('focus', () => { activeInput = input; });
@@ -505,6 +519,7 @@
             });
             if(inputs.length > 0) activeInput = inputs[0];
         }
+        
         function toggleVoice() {
             const btnMic = document.getElementById('btnMic');
             if (btnMic.classList.contains('listening')) recognition.stop();
@@ -515,29 +530,39 @@
         }
 
         // ==========================================
-        // ฟังก์ชันจัดรูปแบบข้อความอัตโนมัติ (แก้ไขเพิ่มเติมอายุงาน)
+        // แก้ไข 2: จัดรูปแบบอายุงาน (ซ่อน 0 ปี)
         // ==========================================
         function applySmartFormatting(id, value) {
             let formatted = value;
 
-            // --- ส่วนที่แก้ไข: เพิ่ม logic สำหรับอายุงาน (b_exp, g_exp) ---
             if (id === 'b_exp' || id === 'g_exp') {
                 // กรองเอาเฉพาะตัวเลขและตัวคั่น (/, ., -, ช่องว่าง)
                 let cleanVal = formatted.replace(/[^\d\/\.\-\s]/g, '').trim();
                 
-                // แยกปีและเดือนออกจากกันด้วยตัวคั่น
+                // แยกปีและเดือน
                 let parts = cleanVal.split(/[\/\.\-\s]+/);
                 
                 if (parts.length > 0 && parts[0] !== "") {
-                    // ใส่ปี
-                    formatted = parts[0] + " ปี";
-                    // ถ้ามีส่วนหลัง ให้ใส่เดือน
-                    if (parts.length > 1 && parts[1] !== "") {
-                        formatted += " " + parts[1] + " เดือน";
+                    let yearVal = parseInt(parts[0]);
+                    let monthVal = (parts.length > 1 && parts[1] !== "") ? parts[1] : "";
+
+                    let resultStr = "";
+
+                    // ถ้าปี มากกว่า 0 ถึงจะแสดงคำว่า ปี
+                    if (yearVal > 0) {
+                        resultStr += yearVal + " ปี";
                     }
+
+                    // ถ้ามีเดือน ให้แสดงเดือน
+                    if (monthVal !== "") {
+                        // ถ้ามีปีนำหน้ามาก่อน ให้เว้นวรรค
+                        if (resultStr !== "") resultStr += " ";
+                        resultStr += monthVal + " เดือน";
+                    }
+
+                    formatted = resultStr;
                 }
             }
-            // --------------------------------------------------------
 
             if (id === 'b_name' || id === 'g_name') formatted = formatted.replace(/\s+/g, ' ').trim();
             const addressFields = ['b_id_addr', 'b_curr_addr', 'b_work_addr', 'g_id_addr', 'g_curr_addr', 'g_work_addr'];
