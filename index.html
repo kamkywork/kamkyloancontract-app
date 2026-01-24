@@ -103,7 +103,7 @@
         /* Legal Page */
         .legal-page {
             width: 100%; max-width: 215.9mm; min-height: 355.6mm; height: auto;           
-            background: white; padding: 10mm 5mm; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            background: white; padding: 5mm 5mm; box-shadow: 0 0 15px rgba(0,0,0,0.5);
             position: relative; box-sizing: border-box; color: #000; line-height: 1.6; font-size: 16px;
         }
 
@@ -156,6 +156,13 @@
         <div class="form-group"><label>เลขที่สัญญา</label><input type="text" id="inp_c_no" data-map="c_no" oninput="update('c_no', this.value)" placeholder="เช่น 66/001"></div>
         <div class="form-group"><label>วันที่ทำสัญญา</label><input type="date" id="inp_c_date" data-map="c_date" oninput="update('c_date', formatDate(this.value))"></div>
 
+        <div class="form-group" style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 4px; border: 1px dashed #95a5a6; margin-top: 10px;">
+            <label style="color: #4cd137; display: flex; align-items: center; gap: 5px;">
+                <i class="fas fa-file-image"></i> แนบรูปข้อมูลติดต่อเพิ่มเติม
+            </label>
+            <input type="file" id="inp_contact_img" accept="image/*" onchange="handleContactImage(this)" style="color: white; font-size: 14px; margin-top:5px;">
+            <div id="contact_img_status" style="font-size: 12px; color: #aaa; margin-top: 5px;">(เก็บในระบบเท่านั้น ไม่แสดงในสัญญา)</div>
+        </div>
         <div class="section-header">ข้อมูลผู้ซื้อ</div>
         <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp_b_name" data-map="b_name" oninput="update('b_name', this.value)"></div>
         <div class="form-group"><label>ชื่อเล่น</label><input type="text" id="inp_b_nick" data-map="b_nick" oninput="update('b_nick', this.value)"></div>
@@ -366,9 +373,13 @@
         // ************************************************************
         // ใส่ URL ของ Google Apps Script ของคุณที่นี่
         // ************************************************************
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuhlBBg3Z2tsYBmBsnDex04A9j2gaFXgokVdpJnQ7e0MvCrKwQvWY2miZR8nXFdC8D/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyoBj3sFphlhKjunp-J6XpdEunIILQMbJT-r-imm6BKfZ8fu26n26CCGuknfnwSpFWV/exec';
         
         let paymentRecords = {};
+        // ==============================================
+        // ส่วนที่เพิ่มใหม่: ตัวแปรเก็บข้อมูลรูปภาพ
+        // ==============================================
+        let contactImageBase64 = ""; 
 
         function formatIdCard(obj) {
             let val = obj.value.replace(/[^0-9]/g, '');
@@ -464,6 +475,11 @@
                 document.querySelectorAll('.input-panel input:not(.search-box input)').forEach(input => { input.value = ""; input.dispatchEvent(new Event('input')); });
                 paymentRecords = {};
                 generateTable();
+                
+                // Reset รูปภาพด้วย
+                document.getElementById('inp_contact_img').value = "";
+                handleContactImage(document.getElementById('inp_contact_img'));
+                
                 isRestoring = false;
                 saveState(true);
             }
@@ -479,11 +495,41 @@
             if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
         });
 
+        // ==============================================
+        // ส่วนที่เพิ่มใหม่: ฟังก์ชันจัดการการ Upload รูปภาพ
+        // ==============================================
+        function handleContactImage(input) {
+            const statusDiv = document.getElementById('contact_img_status');
+            if (input.files && input.files[0]) {
+                // ตรวจสอบขนาดไฟล์ (ตัวอย่าง: ไม่เกิน 5MB)
+                if(input.files[0].size > 5 * 1024 * 1024) {
+                    alert("❌ ไฟล์ใหญ่เกินไป (กรุณาใช้ไฟล์ไม่เกิน 5MB)");
+                    input.value = ""; 
+                    contactImageBase64 = "";
+                    statusDiv.innerText = "(เก็บในระบบเท่านั้น ไม่แสดงในสัญญา)";
+                    statusDiv.style.color = "#aaa";
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    contactImageBase64 = e.target.result; // เก็บข้อมูลรูปภาพแบบ Base64
+                    statusDiv.innerText = "✅ พร้อมอัปโหลด: " + input.files[0].name;
+                    statusDiv.style.color = "#2ecc71";
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                contactImageBase64 = "";
+                statusDiv.innerText = "(เก็บในระบบเท่านั้น ไม่แสดงในสัญญา)";
+                statusDiv.style.color = "#aaa";
+            }
+        }
+
         let recognition;
         let activeInput = null; 
         
         // ==========================================
-        // ระบบเสียง (พิมพ์ต่อท้าย ไม่ทับ)
+        // ระบบเสียง
         // ==========================================
         function initVoiceSystem() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -499,14 +545,11 @@
             recognition.onresult = function(event) {
                 if (activeInput) {
                     const transcript = event.results[0][0].transcript;
-                    
-                    // เช็คว่ามีข้อความเดิมไหม ถ้ามีให้เว้นวรรคแล้วต่อด้วยข้อความใหม่
                     if (activeInput.value && activeInput.value.trim() !== "") {
                         activeInput.value = activeInput.value + " " + transcript;
                     } else {
                         activeInput.value = transcript;
                     }
-
                     activeInput.dispatchEvent(new Event('input', { bubbles: true }));
                     saveState(true); 
                 } else alert("คลิกช่องที่จะพิมพ์ก่อนครับ");
@@ -536,30 +579,19 @@
             let formatted = value;
 
             if (id === 'b_exp' || id === 'g_exp') {
-                // กรองเอาเฉพาะตัวเลขและตัวคั่น (/, ., -, ช่องว่าง)
                 let cleanVal = formatted.replace(/[^\d\/\.\-\s]/g, '').trim();
-                
-                // แยกปีและเดือน
                 let parts = cleanVal.split(/[\/\.\-\s]+/);
                 
                 if (parts.length > 0 && parts[0] !== "") {
                     let yearVal = parseInt(parts[0]);
                     let monthVal = (parts.length > 1 && parts[1] !== "") ? parts[1] : "";
-
                     let resultStr = "";
 
-                    // ถ้าปี มากกว่า 0 ถึงจะแสดงคำว่า ปี
-                    if (yearVal > 0) {
-                        resultStr += yearVal + " ปี";
-                    }
-
-                    // ถ้ามีเดือน ให้แสดงเดือน
+                    if (yearVal > 0) resultStr += yearVal + " ปี";
                     if (monthVal !== "") {
-                        // ถ้ามีปีนำหน้ามาก่อน ให้เว้นวรรค
                         if (resultStr !== "") resultStr += " ";
                         resultStr += monthVal + " เดือน";
                     }
-
                     formatted = resultStr;
                 }
             }
@@ -644,12 +676,8 @@
                 if (i < inputInstallments) {
                     
                 if(startDateVal) {
-                    // ==========================================
-                    // FIXED: แก้ไขการสร้างวันที่ในลูปตาราง
-                    // ==========================================
                     const parts = startDateVal.split('-');
                     const startObj = new Date(parts[0], parts[1] - 1, parts[2]);
-                    
                     let targetDate;
 
                     if (i === 0) {
@@ -727,14 +755,9 @@
                         const input = document.querySelector(`[data-map="${key}"]`);
                         if(input) {
                             let val = data[key];
-                            
-                            // ==========================================
-                            // FIXED: แก้ไขปัญหาวันที่ถอยหลัง 1 วัน (Timezone Issue)
-                            // ==========================================
                             if(input.type === 'date' && val) {
                                 let d = new Date(val);
                                 if (!isNaN(d.getTime())) {
-                                    // ดึงวันเดือนปี ตามเวลาท้องถิ่นเครื่องผู้ใช้ (แก้ Timezone)
                                     let year = d.getFullYear();
                                     let month = (d.getMonth() + 1).toString().padStart(2, '0');
                                     let day = d.getDate().toString().padStart(2, '0');
@@ -789,6 +812,18 @@
 
                 formData.file_name_base = `สัญญา_${formData.c_no || 'ไม่มีเลข'}_${formData.b_name || 'ลูกค้า'}`.replace(/[\/\s]/g, "-");
 
+                // ==============================================
+                // ส่วนที่เพิ่มใหม่: แนบข้อมูลรูปภาพเพิ่มเติม (ถ้ามี)
+                // ==============================================
+                if (contactImageBase64) {
+                    formData.contact_image_base64 = contactImageBase64;
+                    const fileInput = document.getElementById('inp_contact_img');
+                    if(fileInput.files.length > 0) {
+                        formData.contact_image_name = fileInput.files[0].name;
+                    }
+                }
+                // ==============================================
+
                 var wb = XLSX.utils.book_new();
                 
                 let excelRows = [
@@ -799,7 +834,7 @@
                     ["b_id_card", formData.b_id_card, "เลขบัตร ปชช."]
                 ];
                 for(let key in formData) {
-                    if(!['action','excel_base64','image_base64','pdf_base64'].includes(key)) {
+                    if(!['action','excel_base64','image_base64','pdf_base64','contact_image_base64'].includes(key)) {
                         excelRows.push([key, formData[key], ""]);
                     }
                 }
@@ -814,9 +849,6 @@
                 for (let i = 0; i < inputInstallments; i++) {
                     let dateStr = "";
                     if(startDateVal) {
-                        // ==========================================
-                        // FIXED: แก้ไขการสร้างวันที่ในลูป Excel/PDF
-                        // ==========================================
                         const parts = startDateVal.split('-');
                         const startObj = new Date(parts[0], parts[1] - 1, parts[2]);
                         
@@ -867,7 +899,7 @@
 
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(formData) });
                 
-                alert("✅ สำเร็จ!\n1. รูปภาพถูกดาวน์โหลดลงเครื่องแล้ว\n2. ข้อมูลถูกบันทึกบน Server แล้ว\n3. ไฟล์ Excel/PDF/JPG ถูกส่งเข้า Drive แล้ว");
+                alert("✅ สำเร็จ!\n1. รูปภาพถูกดาวน์โหลดลงเครื่องแล้ว\n2. ข้อมูลถูกบันทึกบน Server แล้ว\n3. ไฟล์ Excel/PDF/JPG และรูปแนบ ถูกส่งเข้า Drive แล้ว");
 
             } catch (error) {
                 console.error(error);
