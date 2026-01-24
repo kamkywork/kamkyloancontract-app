@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Voice & Exp</title> 
+    <title>ระบบสัญญาเช่าซื้อ - V.Final Fixed Date Issue</title> 
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
@@ -483,7 +483,7 @@
         let activeInput = null; 
         
         // ==========================================
-        // แก้ไข 1: ระบบเสียง (พิมพ์ต่อท้าย ไม่ทับ)
+        // ระบบเสียง (พิมพ์ต่อท้าย ไม่ทับ)
         // ==========================================
         function initVoiceSystem() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -530,7 +530,7 @@
         }
 
         // ==========================================
-        // แก้ไข 2: จัดรูปแบบอายุงาน (ซ่อน 0 ปี)
+        // จัดรูปแบบอายุงาน (ซ่อน 0 ปี)
         // ==========================================
         function applySmartFormatting(id, value) {
             let formatted = value;
@@ -586,9 +586,14 @@
             document.getElementById(id).innerText = finalValue;
             if(id === 'c_no') document.title = "สัญญา_" + (value ? value.replace(/\//g, "-") : "ไม่มีเลขที่");
         }
+
+        // ==========================================
+        // FIXED: แก้ไขฟังก์ชันวันที่ไม่ให้ถอยหลัง
+        // ==========================================
         function formatDate(dateString) {
             if(!dateString) return "";
-            const date = new Date(dateString);
+            const parts = dateString.split('-'); // แยกปี-เดือน-วัน เอง
+            const date = new Date(parts[0], parts[1] - 1, parts[2]); // สร้าง Date object แบบระบุตรงๆ
             const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
         }
@@ -639,7 +644,12 @@
                 if (i < inputInstallments) {
                     
                 if(startDateVal) {
-                    const startObj = new Date(startDateVal);
+                    // ==========================================
+                    // FIXED: แก้ไขการสร้างวันที่ในลูปตาราง
+                    // ==========================================
+                    const parts = startDateVal.split('-');
+                    const startObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                    
                     let targetDate;
 
                     if (i === 0) {
@@ -718,8 +728,20 @@
                         if(input) {
                             let val = data[key];
                             
-                            if(input.type === 'date' && val && val.length > 10) {
-                                val = val.substring(0, 10);
+                            // ==========================================
+                            // FIXED: แก้ไขปัญหาวันที่ถอยหลัง 1 วัน (Timezone Issue)
+                            // ==========================================
+                            if(input.type === 'date' && val) {
+                                let d = new Date(val);
+                                if (!isNaN(d.getTime())) {
+                                    // ดึงวันเดือนปี ตามเวลาท้องถิ่นเครื่องผู้ใช้ (แก้ Timezone)
+                                    let year = d.getFullYear();
+                                    let month = (d.getMonth() + 1).toString().padStart(2, '0');
+                                    let day = d.getDate().toString().padStart(2, '0');
+                                    val = `${year}-${month}-${day}`;
+                                } else if (val.length > 10) {
+                                    val = val.substring(0, 10);
+                                }
                             }
                             
                             input.value = val;
@@ -792,7 +814,12 @@
                 for (let i = 0; i < inputInstallments; i++) {
                     let dateStr = "";
                     if(startDateVal) {
-                        const startObj = new Date(startDateVal);
+                        // ==========================================
+                        // FIXED: แก้ไขการสร้างวันที่ในลูป Excel/PDF
+                        // ==========================================
+                        const parts = startDateVal.split('-');
+                        const startObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                        
                         const originalDay = startObj.getDate();
                         let currentYear = startObj.getFullYear();
                         let currentMonth = startObj.getMonth() + i;
