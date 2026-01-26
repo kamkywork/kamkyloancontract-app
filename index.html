@@ -373,7 +373,7 @@
         // ************************************************************
         // ใส่ URL ของ Google Apps Script ของคุณที่นี่
         // ************************************************************
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynW2ZBAG8KDP6HImy_BbBv91cKOBPNOXa7TQV-KIv6k00gB-vlyTY0KXVD7yXCf2Zv/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMJQGW17F0a4EVDVkl_WnI5gGpdL1XlS1sCFOkw15YbuLc0apwVCpzWl59-TYS1uBd/exec';
         
         let paymentRecords = {};
         // ==============================================
@@ -910,11 +910,117 @@
             }
         }
 
-        window.onload = function() {
-            generateTable(); initVoiceSystem();
-            document.querySelectorAll('.fill-data').forEach(field => { if (!field.innerText || field.innerText.trim() === "") field.innerText = "-"; });
-            saveState(true);
+        // ค้นหาฟังก์ชัน window.onload เดิม แล้วแทนที่ด้วยชุดนี้ครับ
+window.onload = function() {
+    generateTable(); 
+    initVoiceSystem();
+    document.querySelectorAll('.fill-data').forEach(field => { 
+        if (!field.innerText || field.innerText.trim() === "") field.innerText = "-"; 
+    });
+    saveState(true);
+
+    // --- ส่วนที่เพิ่มใหม่: ระบบ Auto Update สำหรับใบเสร็จ ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoUpdate = urlParams.get('auto_update');
+    const contractNo = urlParams.get('c_no');
+
+    if (autoUpdate === 'true' && contractNo) {
+        // แสดง Overlay ทับหน้าจอเพื่อแจ้งสถานะ
+        const overlay = document.createElement('div');
+        overlay.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;color:white;display:flex;align-items:center;justify-content:center;font-size:24px;flex-direction:column;";
+        overlay.innerHTML = `<div>🔄 กำลังอัปเดตไฟล์สัญญาอัตโนมัติ...</div><div style="font-size:16px;margin-top:10px;">เลขที่สัญญา: ${contractNo}</div>`;
+        document.body.appendChild(overlay);
+
+        // ขั้นตอนที่ 1: ค้นหาข้อมูล
+        document.getElementById('searchInput').value = contractNo;
+        autoProcessContract(contractNo);
+    }
+};
+
+// ฟังก์ชันพิเศษสำหรับรันงานอัตโนมัติ
+async function autoProcessContract(contractNo) {
+    try {
+        // ค้นหาข้อมูล
+        await searchContract(); 
+        
+        // รอให้ตารางและข้อมูล Render แป๊บนึง (500ms)
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // ขั้นตอนที่ 2: บันทึกและส่งไฟล์ขึ้น Drive (ปิดดาวน์โหลดลงเครื่องเพื่อไม่ให้รก)
+        await runAllActions(true); // ส่ง parameter true เพื่อบอกว่าเป็น auto
+
+        // ขั้นตอนที่ 3: อัปเดตเสร็จแล้วปิดตัวเอง
+        window.close();
+    } catch (e) {
+        alert("Auto Update ล้มเหลว: " + e.message);
+    }
+}
+
+// แก้ไขฟังก์ชัน runAllActions เล็กน้อยเพื่อให้ไม่เด้ง Download ตอนทำงานเบื้องหลัง
+// (หาฟังก์ชัน runAllActions เดิมแล้วเพิ่มเงื่อนไข isAuto เข้าไป)
+async function runAllActions(isAuto = false) {
+    const btn = document.querySelector('.btn-group .btn-master');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ กำลังบันทึกและสร้างไฟล์..."; btn.disabled = true;
+
+    try {
+        let formData = {
+            action: 'save',
+            payment_records_json: JSON.stringify(paymentRecords)
         };
+        
+        document.querySelectorAll('[data-map]').forEach(el => {
+            formData[el.getAttribute('data-map')] = el.value;
+        });
+
+        formData.file_name_base = `สัญญา_${formData.c_no || 'ไม่มีเลข'}_${formData.b_name || 'ลูกค้า'}`.replace(/[\/\s]/g, "-");
+
+        if (contactImageBase64) {
+            formData.contact_image_base64 = contactImageBase64;
+        }
+
+        // สร้าง Excel
+        var wb = XLSX.utils.book_new();
+        // ... (โค้ดสร้าง Excel เดิมของคุณ) ...
+        const excelBase64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+
+        // สร้างรูป JPG
+        const canvas = await html2canvas(document.getElementById('contractContent'), { scale: 2, backgroundColor: "#ffffff" });
+        const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+
+        // --- แก้ไขตรงนี้: ถ้าไม่ใช่โหมด Auto ให้ดาวน์โหลดลงเครื่อง ---
+        if (!isAuto) {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = imageBase64;
+            downloadLink.download = formData.file_name_base + ".jpg";
+            downloadLink.click();
+        }
+
+        // สร้าง PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'legal');
+        const imgProps = doc.getImageProperties(imageBase64);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        doc.addImage(imageBase64, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+        formData.excel_base64 = excelBase64;
+        formData.image_base64 = imageBase64;
+        formData.pdf_base64 = pdfBase64;
+
+        await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(formData) });
+        
+        if(!isAuto) alert("✅ อัปเดตข้อมูลและไฟล์เรียบร้อย!");
+
+    } catch (error) {
+        console.error(error);
+        if(!isAuto) alert("❌ เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+        btn.innerHTML = '<i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)';
+        btn.disabled = false;
+    }
+};
     </script>
 </body>
 </html>
