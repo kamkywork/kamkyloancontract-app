@@ -865,7 +865,7 @@
                 await searchContract(); 
                 
                 // 2. รอให้ตารางสร้างเสร็จและรูปโหลด (สำคัญมาก)
-                await new Promise(resolve => setTimeout(resolve, 2500)); 
+                await new Promise(resolve => setTimeout(resolve, 5000)); 
                 
                 // 3. สั่งบันทึกและส่งไฟล์
                 await runAllActions(true);
