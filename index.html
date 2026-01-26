@@ -373,7 +373,7 @@
         // ************************************************************
         // URL ของ Google Apps Script
         // ************************************************************
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Tbn9QIcbOprviY7rrjAnE5va9UkUZBgS7i_HIpRwtvHNv6r5WT9WhTeR7I8K_MiK/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqSZFA4g_DECMgGAEYl7-E4nSujrk8uP8Usym4m0Y6Zjh4VP9TVWi5N3pwQfh0NA-_/exec';
         
         let paymentRecords = {};
         let contactImageBase64 = ""; 
@@ -801,9 +801,24 @@
                 const excelBase64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
                 formData.excel_base64 = excelBase64;
 
-                // สร้าง JPG
-                const canvas = await html2canvas(document.getElementById('contractContent'), { scale: 2, backgroundColor: "#ffffff" });
+                // สร้าง JPG (แก้ไขตามคำแนะนำ: เพิ่ม useCORS, allowTaint, logging และตรวจสอบขนาดไฟล์)
+                const element = document.getElementById('contractContent');
+                if (!element) throw new Error("ไม่พบ Element สัญญา");
+
+                const canvas = await html2canvas(element, { 
+                    scale: 2, 
+                    backgroundColor: "#ffffff",
+                    useCORS: true,       // อนุญาตให้ดึงรูปข้ามเว็บ
+                    allowTaint: true,    // อนุญาตให้จับภาพที่มีรูปภาพ
+                    logging: true        // ช่วยดู Log ใน Console
+                });
+
                 const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // ดักจับ: ถ้ารูปสั้นเกินไป แสดงว่าจับภาพล้มเหลว
+                if (imageBase64.length < 1000) {
+                    throw new Error("รูปภาพที่ได้ไม่สมบูรณ์ (ขนาดเล็กผิดปกติ)");
+                }
                 formData.image_base64 = imageBase64;
 
                 // สร้าง PDF
@@ -830,6 +845,10 @@
             } catch (error) {
                 console.error(error);
                 if(!isAuto) alert("❌ เกิดข้อผิดพลาด: " + error.message);
+                else {
+                    // กรณี Auto Update แสดง Error ให้เห็นชัดเจน
+                    document.body.innerHTML += `<div style="background:red; color:white; padding:20px; text-align:center; position:fixed; top:0; left:0; width:100%; z-index:10000;">ERROR (RunActions): ${error.message}</div>`;
+                }
             } finally {
                 if(btn) { btn.innerHTML = '<i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)'; btn.disabled = false; }
             }
@@ -858,7 +877,7 @@
             }
         };
 
-        // ✅ 5. ฟังก์ชัน Auto Process แบบรอข้อมูลโหลด
+        // ✅ 5. ฟังก์ชัน Auto Process แบบรอข้อมูลโหลด (แก้ไขตามคำแนะนำ)
         async function autoProcessContract(contractNo) {
             try {
                 // 1. ค้นหาข้อมูล
@@ -866,14 +885,22 @@
                 
                 // 2. รอให้ตารางสร้างเสร็จและรูปโหลด (สำคัญมาก)
                 await new Promise(resolve => setTimeout(resolve, 5000)); 
+
+                // 3. ตรวจสอบก่อนว่าข้อมูลมาจริงไหม (เช็คชื่อลูกค้า)
+                const nameField = document.getElementById('b_name').innerText;
+                if (!nameField || nameField === '-' || nameField === '') {
+                    throw new Error("ข้อมูลยังไม่โหลด หรือไม่พบสัญญา");
+                }
                 
-                // 3. สั่งบันทึกและส่งไฟล์
+                // 4. สั่งบันทึกและส่งไฟล์
                 await runAllActions(true);
 
-                // 4. ปิดหน้าต่างเมื่อเสร็จสิ้น
-                window.close();
+                // 5. ปิดหน้าต่างเมื่อเสร็จสิ้น (หน่วงเวลาเพื่อให้แน่ใจว่าส่งข้อมูลไปแล้ว)
+                setTimeout(() => window.close(), 3000);
+
             } catch (e) {
-                alert("Auto Update Failed: " + e.message);
+                // ถ้า Error ให้แสดงค้างไว้ ไม่ปิดหน้าต่าง
+                document.body.innerHTML += `<div style="background:red; color:white; padding:20px; text-align:center; position:fixed; top:0; left:0; width:100%; z-index:10000;">ERROR (AutoProcess): ${e.message}</div>`;
             }
         }
     </script>
