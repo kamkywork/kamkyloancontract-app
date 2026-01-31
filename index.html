@@ -255,6 +255,9 @@
             <button class="btn-master" onclick="runAllActions()">
                 <i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)
             </button>
+			<button class="btn-master" style="background: #e67e22; margin-top: 10px;" onclick="saveLocalJPG()">
+                <i class="fas fa-download"></i> บันทึก JPG (เฉพาะลงเครื่องทันที)
+            </button>
             <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #aaa;">
                 (ดาวน์โหลด JPG + อัปโหลด Excel/JPG/PDF ขึ้น Drive)
             </div>
@@ -851,6 +854,46 @@
                 }
             } finally {
                 if(btn) { btn.innerHTML = '<i class="fas fa-save"></i> บันทึกรูปภาพ (ลงเครื่อง+Drive)'; btn.disabled = false; }
+            }
+        }
+		
+		// ✅ เพิ่มฟังก์ชันนี้สำหรับบันทึกรูปภาพลงเครื่องอย่างเดียว
+        async function saveLocalJPG() {
+            const btn = document.querySelector("button[onclick='saveLocalJPG()']");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังสร้างรูปภาพ...';
+            btn.disabled = true;
+
+            try {
+                const element = document.getElementById('contractContent');
+                if (!element) throw new Error("ไม่พบพื้นที่สัญญา");
+
+                // ใช้การตั้งค่าเดียวกับระบบเดิมเพื่อให้ภาพเหมือนกันเป๊ะ
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    backgroundColor: "#ffffff",
+                    useCORS: true,
+                    allowTaint: true
+                });
+
+                const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+
+                // ดึงชื่อมาตั้งชื่อไฟล์
+                const c_no = document.getElementById('inp_c_no').value || 'Draft';
+                const b_name = document.getElementById('inp_b_name').value || 'ลูกค้า';
+                const fileName = `สัญญา_${c_no}_${b_name}`.replace(/[\/\s]/g, "-") + ".jpg";
+
+                // สั่งดาวน์โหลดทันที
+                const link = document.createElement('a');
+                link.href = imageBase64;
+                link.download = fileName;
+                link.click();
+
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาด: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
