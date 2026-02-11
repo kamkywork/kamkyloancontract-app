@@ -808,12 +808,15 @@
                 const element = document.getElementById('contractContent');
                 if (!element) throw new Error("ไม่พบ Element สัญญา");
 
+                // ✅ แก้ไข: เพิ่ม windowWidth และ windowHeight เพื่อบังคับขนาดหน้าจอจำลอง
                 const canvas = await html2canvas(element, { 
                     scale: 2, 
                     backgroundColor: "#ffffff",
-                    useCORS: true,       // อนุญาตให้ดึงรูปข้ามเว็บ
-                    allowTaint: true,    // อนุญาตให้จับภาพที่มีรูปภาพ
-                    logging: true        // ช่วยดู Log ใน Console
+                    useCORS: true,       
+                    allowTaint: true,    
+                    logging: true,
+                    windowWidth: 1600,   // 👈 บังคับความกว้างเหมือนจอคอม (แก้ปัญหาสัดส่วนเพี้ยน)
+                    windowHeight: 3000   // 👈 บังคับความสูงให้มากพอ (แก้ปัญหาตารางถูกตัดที่งวด 7-8)
                 });
 
                 const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
@@ -868,12 +871,14 @@
                 const element = document.getElementById('contractContent');
                 if (!element) throw new Error("ไม่พบพื้นที่สัญญา");
 
-                // ใช้การตั้งค่าเดียวกับระบบเดิมเพื่อให้ภาพเหมือนกันเป๊ะ
+                // ✅ แก้ไข: เพิ่ม windowWidth และ windowHeight
                 const canvas = await html2canvas(element, {
                     scale: 2,
                     backgroundColor: "#ffffff",
                     useCORS: true,
-                    allowTaint: true
+                    allowTaint: true,
+                    windowWidth: 1600,   // 👈 บังคับความกว้าง
+                    windowHeight: 3000   // 👈 บังคับความสูงให้ครอบคลุมตารางทั้ง 12 งวด
                 });
 
                 const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
