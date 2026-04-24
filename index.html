@@ -516,12 +516,23 @@
                         const parts = startDateVal.split('-');
                         const startObj = new Date(parts[0], parts[1] - 1, parts[2]);
                         let targetDate;
-                        if (i === 0) targetDate = startObj;
-                        else {
-                            let payDayVal = parseInt(document.getElementById('inp_p_day').value);
-                            let preferredDay = (payDayVal && payDayVal > 0 && payDayVal <= 31) ? payDayVal : startObj.getDate();
-                            targetDate = new Date(startObj.getFullYear(), startObj.getMonth() + i, preferredDay);
-                        }
+                        if (i === 0) {
+    targetDate = startObj;
+} else {
+    let payDayVal = parseInt(document.getElementById('inp_p_day').value);
+    let preferredDay = (payDayVal && payDayVal > 0 && payDayVal <= 31) ? payDayVal : startObj.getDate();
+    
+    let targetYear = startObj.getFullYear();
+    let targetMonth = startObj.getMonth() + i;
+    
+    // หาวันที่สุดท้ายของเดือนเป้าหมาย (วันที่ 0 ของเดือนถัดไป = วันสุดท้ายของเดือนปัจจุบัน)
+    let lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    
+    // เทียบว่าวันที่กำหนด กับ วันสุดท้ายของเดือน อันไหนน้อยกว่าให้ใช้อันนั้น
+    let finalDay = Math.min(preferredDay, lastDayOfMonth);
+    
+    targetDate = new Date(targetYear, targetMonth, finalDay);
+}
                         const y = (targetDate.getFullYear() + 543).toString().slice(-2);
                         dateStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${y}`;
                     }
